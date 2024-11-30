@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dino Game</title>
+    <style>
+        body {
+            font-family: 'Courier New', Courier, monospace;
+            text-align: center;
+            margin: 0;
+            padding: 0;
+            background-image: url('d8.jpg');
+            background-repeat: no-repeat;
+            background-size: 1700px 850px; 
+            background-position: center; 
+            color: rgb(95, 84, 222); 
+            overflow: hidden; 
+        }
+        
+        #board {
+            border-bottom: 1px solid black;
+            display: block;
+            margin: 0 auto;
+            margin-top: 180px;
+            border: none;
+        }
+        
+        #game-over {
+            display: none;
+            position: absolute;
+            top: 70%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 50px;
+            color: red;
+            font-family: Arial, sans-serif;
+            z-index: 1;
+        }
+        
+        #game-over span {
+            display: block;
+            font-size: 30px; 
+        }
+        h1{
+            font-size: 80px;
+            top:40px;
+
+        }
+    </style>
+</head>
+<body>
+    <h1> Dinosaur Game</h1>
+    <canvas id="board"></canvas>
+    <div id="game-over">
+        Game Over
+        <span id="final-score"></span>
+    </div>
+
+    <script>
+        const boardWidth = 2050;
+        const boardHeight = 250;
+        const dinoWidth = 88;
+        const dinoHeight = 94;
+        const cactus1Width = 34;
+        const cactus2Width = 69;
+        const cactus3Width = 102;
+        const cactusHeight = 70;
+
+        let board, context;
+        let dinoImg, cactus1Img, cactus2Img, cactus3Img, dinoDeadImg;
+        let dino = { x: 50, y: boardHeight - dinoHeight, width: dinoWidth, height: dinoHeight };
+        let cactusArray = [];
+        let velocityX = -8;
+        let velocityY = 0;
+        const gravity = 0.4;
+        let gameOver = false;
+        let score = 0;
+        const cactusX = boardWidth;
+        const cactusY = boardHeight - cactusHeight;
+
+        window.onload = function() {
+            board = document.getElementById("board");
+            board.height = boardHeight;
+            board.width = boardWidth;
+            context = board.getContext("2d");
+
+            dinoImg = new Image();
+            dinoImg.src = "dino.png";
+            dinoImg.onload = checkImagesLoaded;
+            dinoImg.onerror = () => console.error('Failed to load dino.png');
+
+            cactus1Img = new Image();
+            cactus1Img.src = "cactus1.png";
+            cactus1Img.onload = checkImagesLoaded;
+            cactus1Img.onerror = () => console.error('Failed to load cactus1.png');
+
+            cactus2Img = new Image();
+            cactus2Img.src = "cactus2.png";
+            cactus2Img.onload = checkImagesLoaded;
+            cactus2Img.onerror = () => console.error('Failed to load cactus2.png');
+
+            cactus3Img = new Image();
+            cactus3Img.src = "cactus3.png";
+            cactus3Img.onload = checkImagesLoaded;
+            cactus3Img.onerror = () => console.error('Failed to load cactus3.png');
+
+            dinoDeadImg = new Image();
+            dinoDeadImg.src = "dead.png";
+            dinoDeadImg.onload = checkImagesLoaded;
+            dinoDeadImg.onerror = () => console.error('Failed to load dead.png');
+
+            let imagesLoaded = 0;
+            function checkImagesLoaded() {
+                imagesLoaded++;
+                if (imagesLoaded === 5) {
+                    resetGame();
+                }
+            }
+        }
+
+        function resetGame() {
+            cactusArray = [];
+            velocityX = -8;
+            velocityY = 0;
+            gameOver = false;
+            score = 0;
+
+            document.addEventListener("keydown", moveDino);
+            document.getElementById("game-over").style.display = "none"; 
+            requestAnimationFrame(update);
+            setInterval(placeCactus, 1000); 
+        }
+
+        function update() {
+            if (gameOver) {
+                return;
+            }
+
+            requestAnimationFrame(update);
+            context.clearRect(0, 0, board.width, board.height);
+
+            // Dino
+            velocityY += gravity;
+            dino.y = Math.min(dino.y + velocityY, boardHeight - dinoHeight); 
+            context.drawImage(dinoImg, dino.x, dino.y, dino.width, dino.height);
+
+            // Cactus
+            for (let i = 0; i < cactusArray.length; i++) {
+                let cactus = cactusArray[i];
+                cactus.x += velocityX;
+                context.drawImage(cactus.img, cactus.x, cactus.y, cactus.width, cactus.height);
+
+                if (detectCollision(dino, cactus)) {
+                    gameOver = true;
+                    dinoImg.src = "dead.png";
+                    dinoImg.onload = function() {
+                        context.drawImage(dinoImg, dino.x, dino.y, dino.width, dino.height);
+                    }
+                    document.getElementById("final-score").textContent = "Score: " + score; // Display final score
+                    document.getElementById("game-over").style.display = "block"; // Show game-over message
+                    document.removeEventListener("keydown", moveDino); // Stop further key handling
+                    return; 
+                }
+            }
+
+            // Score
+            context.fillStyle = "black";
+            context.font = "20px Courier New";
+            score++;
+            context.fillText("Score: " + score, 5, 20);
+        }
+
+        function moveDino(e) {
+            if (gameOver) {
+                return;
+            }
+
+            if ((e.code === "Space" || e.code === "ArrowUp") && dino.y === boardHeight - dinoHeight) {
+                // Jump
+                velocityY = -10;
+            }
+            // Placeholder for ducking logic
+            else if (e.code === "ArrowDown") {
+                // Implement ducking logic if needed
+            }
+        }
+
+        function placeCactus() {
+            if (gameOver) {
+                return;
+            }
+
+            let cactus = {
+                img: null,
+                x: cactusX,
+                y: cactusY,
+                width: null,
+                height: cactusHeight
+            };
+
+            let placeCactusChance = Math.random(); // 0 - 0.9999...
+
+            if (placeCactusChance > 0.90) { 
+                cactus.img = cactus3Img;
+                cactus.width = cactus3Width;
+            } else if (placeCactusChance > 0.70) { 
+                cactus.img = cactus2Img;
+                cactus.width = cactus2Width;
+            } else { 
+                cactus.img = cactus1Img;
+                cactus.width = cactus1Width;
+            }
+            cactusArray.push(cactus);
+
+            if (cactusArray.length > 5) {
+                cactusArray.shift(); // Remove the first element from the array so it doesn't grow indefinitely
+            }
+        }
+
+        function detectCollision(a, b) {
+            return a.x < b.x + b.width &&
+                   a.x + a.width > b.x &&
+                   a.y < b.y + b.height &&
+                   a.y + a.height > b.y;
+        }
+    </script>
+</body>
+</html>
